@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  AVAILABLE
+  SENT
+  DISABLED
+}
+
+enum RequestStatus {
+  PENDING
+  FULFILLED
+  REJECTED
+}
+
+model Account {
+  id                 String        @id @default(cuid())
+  label              String?
+  username           String
+  passwordEncrypted  String
+  status             AccountStatus @default(AVAILABLE)
+  assignedToEmail    String?
+  assignedAt         DateTime?
+  sentAt             DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  fulfilledRequest   Request?      @relation("FulfilledAccount")
+
+  @@index([status])
+  @@index([assignedToEmail])
+}
+
+model Request {
+  id                 String        @id @default(cuid())
+  requesterEmail     String
+  status             RequestStatus @default(PENDING)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  fulfilledAccountId String?       @unique
+  fulfilledAccount   Account?      @relation("FulfilledAccount", fields: [fulfilledAccountId], references: [id])
+
+  @@index([requesterEmail])
+  @@index([status, createdAt])
+}
+
+model AdminAction {
+  id          String   @id @default(cuid())
+  requestId   String
+  accountId   String
+  adminEmail  String
+  action      String
+  createdAt   DateTime @default(now())
+
+  @@index([requestId])
+  @@index([accountId])
+}
